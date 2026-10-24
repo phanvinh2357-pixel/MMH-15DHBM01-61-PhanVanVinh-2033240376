@@ -11,16 +11,26 @@ PROTOCOL_PREFIX = b"HUIT-SEC-V1"
 # ============================================================================
 
 def generate_ecdh_keypair() -> Tuple[ec.EllipticCurvePrivateKey, ec.EllipticCurvePublicKey]:
-    raise NotImplementedError("Phan Văn Vinh cần hiện thực hàm sinh cặp khóa ECDH P-256.")
-
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+    return private_key, public_key
 
 def compute_shared_secret(private_key: ec.EllipticCurvePrivateKey, 
                           peer_public_key: ec.EllipticCurvePublicKey) -> bytes:
-    raise NotImplementedError("Phan Văn Vinh cần hiện thực hàm tính bí mật chia sẻ Z.")
-
+    shared_secret = private_key.exchange(ec.ECDH(), peer_public_key)
+    return shared_secret
 
 def hkdf_extract(salt: bytes, ikm: bytes) -> bytes:
-    raise NotImplementedError("Phan Văn Vinh cần hiện thực hàm trích xuất HKDF-Extract.")
+    if ikm is None or len(ikm) == 0:
+        raise ValueError("Lỗi an toàn: Nguồn entropy IKM không được rỗng hoặc None.")
+    
+    if salt is None or len(salt) == 0:
+        salt = b"\x00" * 32
+        
+    h = hmac.HMAC(salt, hashes.SHA256())
+    h.update(ikm)
+    prk = h.finalize()
+    return prk
 
 
 # ============================================================================
