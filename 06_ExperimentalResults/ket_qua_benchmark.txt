@@ -1,0 +1,28 @@
+=== KẾT QUẢ KIỂM THỬ ĐƠN VỊ VÀ ĐO KIỂM THỰC NGHIỆM HKDF-EXPAND ===
+Thực hiện bởi: Lê Minh Khôi - 2033240160
+Môn học: Đồ án Mật mã học (HUIT)
+
+1. KẾT QUẢ TRÍCH XUẤT KHÓA PHIÊN VÀ KIỂM TRA BIÊN (crypto_engine.py)
+--------------------------------------------------------------------------------
+=== KIỂM THỬ MODULE HKDF-EXPAND (Lê Minh Khôi - 2033240160) ===
+[+] K_control (32 bytes): e03a2904f1cf8d520fda299e73cd08a761376ad36dbc32b14631145c83f1ca01
+[+] K_send (32 bytes): 741ee1b6ffa39259038b6451ab6af0e3eaff2651f09cb0892c9813e5219b89b1
+[+] K_recv (32 bytes): e64ad86856d820d2a3dccdd038913e03d90ccd24598beb293a0ed401c9a5bb27
+[+] K_audit (32 bytes): d6e6863ad6fa421cff2fcbf51404af92bdf56b3b82da2e9e75ea21970f9ef7f
+[+] Nonce_base (12 bytes): 53764ddb8cc9ad4e332bdbfa
+[+] K_export (32 bytes): 2851f9ldbae69e71b89267be4e9823665f2273c958db22f0ee1612cfe09ab58d
+
+[*] Đang kiểm tra ngoại lệ biên L = 9000...
+[PASS] Bắt thành công ngoại lệ biên: ValueError: Invalid requested key length (9000 bytes). L must be between 1 and 8160.
+
+2. KẾT QUẢ KHẢO SÁT HIỆN NĂNG THỰC NGHIỆM (benchmark_expand.py)
+--------------------------------------------------------------------------------
+=== KHẢO SÁT KỊCH BẢN A: ĐỘ TRỄ THEO ĐỘ DÀI L ===
+  - Độ dài L = 16 bytes | Trung bình: 4777.00 ns/lần
+  - Độ dài L = 32 bytes | Trung bình: 3588.10 ns/lần
+  - Độ dài L = 64 bytes | Trung bình: 4892.70 ns/lần
+
+=== KHẢO SÁT KỊCH BẢN B: ĐỘ TRỄ THEO KÍCH THƯỚC INFO ===
+  - Kích thước info thực tế ~  38 bytes | Trung bình: 3003.50 ns/lần
+  - Kích thước info thực tế ~  85 bytes | Trung bình: 3836.30 ns/lần
+  - Kích thước info thực tế ~ 275 bytes | Trung bình: 3835.80 ns/lần
