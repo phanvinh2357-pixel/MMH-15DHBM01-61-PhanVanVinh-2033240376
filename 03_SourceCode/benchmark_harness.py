@@ -12,53 +12,16 @@ RAW_CSV_PATH = os.path.join(RESULTS_DIR, "benchmark_results.csv")
 SUMMARY_CSV_PATH = os.path.join(RESULTS_DIR, "statistics_summary.csv")
 
 
-from crypto_engine import CryptoEngineExpand as CE
-
-PRK = b"\x99" * 32
-
-
-def _measure(fn, n=ITERATIONS):
-    out = []
-    for _ in range(n):
-        t0 = time.perf_counter_ns()
-        fn()
-        out.append((time.perf_counter_ns() - t0) / 1e6)  # ms
-    return out
-
-
-def _stats(v):
-    return {"mean_ms": statistics.mean(v), "std_ms": statistics.stdev(v)}
-
-
 def benchmark_scenario_a() -> Dict[str, List[float]]:
-    """A: độ trễ HKDF-Expand theo độ dài đầu ra L."""
-    info = CE.build_context_info("DATA-PLANE", "client-write-enc", 2, 32)
-    return {f"L={L}B": _measure(lambda L=L: CE.hkdf_expand(PRK, info, L))
-            for L in (16, 32, 64, 128, 256)}
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm benchmark_scenario_a()")
 
 
 def benchmark_scenario_b() -> Dict[str, List[float]]:
-    """B: độ trễ HKDF-Expand theo kích thước info."""
-    return {f"info={n}B": _measure(lambda n=n: CE.hkdf_expand(PRK, b"a" * n, 32))
-            for n in (16, 64, 256, 1024)}
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm benchmark_scenario_b()")
 
 
 def benchmark_scenario_c() -> Dict[str, Dict[str, float]]:
-    """C: chi phí từng khóa trong derive_session_keys (mean, std)."""
-    specs = {
-        "K_control": ("CONTROL-PLANE", "ctrl-aes-gcm-key", 1, 32),
-        "K_send": ("DATA-PLANE", "client-write-enc", 2, 32),
-        "K_recv": ("DATA-PLANE", "server-write-enc", 3, 32),
-        "K_audit": ("AUDIT-PLANE", "session-audit-mac", 4, 32),
-        "Nonce_base": ("DATA-PLANE", "aead-base-iv", 5, 12),
-        "K_export": ("EXPORT-PLANE", "session-export-key", 6, 32),
-    }
-    out = {}
-    for name, (p, lb, k, n) in specs.items():
-        def one(p=p, lb=lb, k=k, n=n):
-            CE.hkdf_expand(PRK, CE.build_context_info(p, lb, k, n), n)
-        out[name] = _stats(_measure(one))
-    return out
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm benchmark_scenario_c()")
 
 
 def benchmark_scenario_d() -> Dict[str, List[float]]:
@@ -100,47 +63,15 @@ def benchmark_scenario_d() -> Dict[str, List[float]]:
 
 
 def benchmark_scenario_e() -> Dict[str, List[float]]:
-    """E: tổng độ trễ derive_session_keys (6 khóa một lần)."""
-    return {"derive_6_keys": _measure(lambda: CE.derive_session_keys(PRK))}
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm benchmark_scenario_e()")
 
 
 def export_results_to_csv(raw_data: Dict[str, List[float]], summary_data: List[Dict[str, float]]) -> None:
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    with open(RAW_CSV_PATH, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["scenario", "run", "time_ms"])
-        for name, vals in raw_data.items():
-            for i, t in enumerate(vals, 1):
-                w.writerow([name, i, f"{t:.6f}"])
-    with open(SUMMARY_CSV_PATH, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["scenario", "n", "mean_ms", "std_ms"])
-        w.writeheader()
-        w.writerows(summary_data)
-    print(f"[+] Đã ghi: {RAW_CSV_PATH}")
-    print(f"[+] Đã ghi: {SUMMARY_CSV_PATH}")
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm export_results_to_csv()")
 
 
 def run_all_benchmarks() -> None:
-    raw: Dict[str, List[float]] = {}
-    summary: List[Dict[str, float]] = []
-
-    def add(prefix, data):
-        for name, vals in data.items():
-            key = f"{prefix}_{name}"
-            raw[key] = vals
-            summary.append({"scenario": key, "n": len(vals), **_stats(vals)})
-
-    add("A", benchmark_scenario_a())
-    add("B", benchmark_scenario_b())
-    for name, s in benchmark_scenario_c().items():
-        summary.append({"scenario": f"C_{name}", "n": ITERATIONS, **s})
-    try:
-        d = benchmark_scenario_d()
-        add("D", {k: [x / 1000 for x in v] for k, v in d.items()})  # µs -> ms
-    except ImportError as e:
-        print(f"[!] Bỏ qua kịch bản D (chưa có hkdf_extract): {e}")
-    add("E", benchmark_scenario_e())
-    export_results_to_csv(raw, summary)
+    raise NotImplementedError("Lương Gia Huy cần hiện thực hàm run_all_benchmarks()")
 
 
 if __name__ == "__main__":
