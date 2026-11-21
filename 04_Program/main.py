@@ -1,6 +1,13 @@
 import sys
 import os
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+SOURCE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "03_SourceCode"))
+if SOURCE_DIR not in sys.path:
+    sys.path.insert(0, SOURCE_DIR)
+
 SOURCE_DIR = os.path.join(os.path.dirname(__file__), "..", "03_SourceCode")
 sys.path.append(SOURCE_DIR)
 

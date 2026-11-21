@@ -1,88 +1,86 @@
-"""
-Module: crypto_engine.py (Phần hiện thực: HKDF-Expand & Domain Separation)
-Tác giả: Lê Minh Khôi - Mã sinh viên: 2033240160
-"""
+from typing import Tuple, Dict
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes, hmac
+from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
 
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes
+PROTOCOL_PREFIX = b"HUIT-SEC-V1"
 
-class CryptoEngineExpand:
-    @staticmethod
-    def build_context_info(protocol: str, label: str, key_id: int, length: int) -> bytes:
-        """
-        Chuẩn hóa chuỗi Context info theo đúng đặc tả phân tách miền:
-        info = Header || Protocol || Label || Key_ID || Length
-        """
-        header = b"HUIT-SEC-V1"
-        plane_bytes = protocol.encode('utf-8')
-        label_bytes = label.encode('utf-8')
-        key_id_bytes = f"{key_id:04d}".encode('utf-8')
-        length_bytes = f"{length:02d}".encode('utf-8')
-        
-        info = header + b"||" + plane_bytes + b"||" + label_bytes + b"||" + key_id_bytes + b"||" + length_bytes
-        return info
 
-    @staticmethod
-    def hkdf_expand(prk: bytes, info: bytes, length: int) -> bytes:
-        """
-        Hàm HKDF-Expand với bộ kiểm tra biên nghiêm ngặt L <= 8160 bytes (L_max).
-        Ném ngoại lệ ValueError nếu vi phạm giới hạn để tránh lặp bộ đếm.
-        """
-        if length <= 0 or length > 255 * 32:  # 8160 bytes
-            raise ValueError(f"ValueError: Invalid requested key length ({length} bytes). L must be between 1 and 8160.")
-        
-        hkdf = HKDF(
-            algorithm=hashes.SHA256(),
-            length=length,
-            salt=None,
-            info=info,
-        )
-        return hkdf.derive(prk)
+# ==============================================================================
+# PHẦN 1: PHỤ TRÁCH BỞI PHAN VĂN VINH (TV1)
+# ==============================================================================
 
-    @classmethod
-    def derive_session_keys(cls, prk: bytes) -> dict:
-        """
-        Đường ống trích xuất toàn bộ các khóa phiên mục tiêu dựa trên phân tách miền.
-        """
-        keys = {}
-        
-        # 1. Khóa Điều khiển (K_control)
-        info_ctrl = cls.build_context_info("CONTROL-PLANE", "ctrl-aes-gcm-key", 1, 32)
-        keys['K_control'] = cls.hkdf_expand(prk, info_ctrl, 32)
+def generate_ecdh_keypair() -> Tuple[ec.EllipticCurvePrivateKey, ec.EllipticCurvePublicKey]:
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    public_key = private_key.public_key()
+    return private_key, public_key
 
-        # 2. Khóa Gửi Dữ liệu (K_send)
-        info_send = cls.build_context_info("DATA-PLANE", "client-write-enc", 2, 32)
-        keys['K_send'] = cls.hkdf_expand(prk, info_send, 32)
 
-        # 3. Khóa Nhận Dữ liệu (K_recv)
-        info_recv = cls.build_context_info("DATA-PLANE", "server-write-enc", 3, 32)
-        keys['K_recv'] = cls.hkdf_expand(prk, info_recv, 32)
+def compute_shared_secret(private_key: ec.EllipticCurvePrivateKey,
+                          peer_public_key: ec.EllipticCurvePublicKey) -> bytes:
+    shared_secret = private_key.exchange(ec.ECDH(), peer_public_key)
+    return shared_secret
 
-        # 4. Khóa Kiểm toán Nhật ký (K_audit)
-        info_audit = cls.build_context_info("AUDIT-PLANE", "session-audit-mac", 4, 32)
-        keys['K_audit'] = cls.hkdf_expand(prk, info_audit, 32)
 
-        # 5. Nonce Gốc (Nonce_base) - Độ dài 12 bytes
-        info_nonce = cls.build_context_info("DATA-PLANE", "aead-base-iv", 5, 12)
-        keys['Nonce_base'] = cls.hkdf_expand(prk, info_nonce, 12)
+def hkdf_extract(salt: bytes, ikm: bytes) -> bytes:
+    if ikm is None or len(ikm) == 0:
+        raise ValueError("Lỗi an toàn: Nguồn entropy IKM không được rỗng hoặc None.")
 
-        # 6. Khóa Xuất khẩu phiên (K_export) - Độ dài 32 bytes
-        info_export = cls.build_context_info("EXPORT-PLANE", "session-export-key", 6, 32)
-        keys['K_export'] = cls.hkdf_expand(prk, info_export, 32)
+    if salt is None or len(salt) == 0:
+        salt = b"\x00" * 32
 
-        return keys
+    h = hmac.HMAC(salt, hashes.SHA256())
+    h.update(ikm)
+    prk = h.finalize()
+    return prk
 
-# --- Khối kiểm thử đơn vị (Unit Test) ---
-if __name__ == "__main__":
-    print("=== KIỂM THỬ MODULE HKDF-EXPAND (Lê Minh Khôi - 2033240160) ===")
-    sample_prk = b"\x11" * 32  # Giả lập PRK 32 bytes
-    
-    session_keys = CryptoEngineExpand.derive_session_keys(sample_prk)
-    for k_name, k_val in session_keys.items():
-        print(f"[+] {k_name} ({len(k_val)} bytes): {k_val.hex()}")
 
-    try:
-        print("\n[*] Đang kiểm tra ngoại lệ biên L = 9000...")
-        CryptoEngineExpand.hkdf_expand(sample_prk, b"test-info", 9000)
-    except ValueError as e:
-        print(f"[PASS] Bắt thành công ngoại lệ biên: {e}")
+# ==============================================================================
+# PHẦN 2: PHỤ TRÁCH BỞI LÊ MINH KHÔI (TV2)
+# ==============================================================================
+
+def build_info_string(plane: str, label: str, key_id: str, length: int) -> bytes:
+    if not plane or not label or not key_id:
+        raise ValueError("Lỗi an toàn: Các tham số ngữ cảnh (plane, label, key_id) không được rỗng.")
+    if length <= 0:
+        raise ValueError("Lỗi an toàn: Độ dài khóa yêu cầu phải lớn hơn 0.")
+
+    plane_bytes = plane.encode("utf-8")
+    label_bytes = label.encode("utf-8")
+    key_id_bytes = str(key_id).encode("utf-8")
+    length_bytes = f"{length:02d}".encode("utf-8")
+
+    return (
+        PROTOCOL_PREFIX
+        + b"||" + plane_bytes
+        + b"||" + label_bytes
+        + b"||" + key_id_bytes
+        + b"||" + length_bytes
+    )
+
+
+def hkdf_expand(prk: bytes, info: bytes, length: int) -> bytes:
+    if prk is None or len(prk) < 32:
+        raise ValueError("Lỗi an toàn: Khóa giả ngẫu nhiên PRK phải có độ dài tối thiểu 32 bytes.")
+    if length <= 0 or length > 255 * 32:
+        raise ValueError(f"Lỗi an toàn: Độ dài đầu ra L ({length} bytes) phải nằm trong khoảng [1, 8160] bytes.")
+
+    if info is None:
+        info = b""
+
+    hkdf = HKDFExpand(
+        algorithm=hashes.SHA256(),
+        length=length,
+        info=info,
+    )
+    return hkdf.derive(prk)
+
+
+def derive_session_keys(prk: bytes) -> Dict[str, bytes]:
+    return {
+        "K_control": hkdf_expand(prk, build_info_string("CONTROL-PLANE", "ctrl-aes-gcm-key", "ctrl-01", 32), 32),
+        "K_send": hkdf_expand(prk, build_info_string("DATA-PLANE", "client-write-enc", "data-tx-01", 32), 32),
+        "K_recv": hkdf_expand(prk, build_info_string("DATA-PLANE", "server-write-enc", "data-rx-01", 32), 32),
+        "K_audit": hkdf_expand(prk, build_info_string("AUDIT-PLANE", "session-audit-mac", "audit-01", 32), 32),
+        "K_export": hkdf_expand(prk, build_info_string("EXPORT-PLANE", "session-export-key", "export-01", 32), 32),
+    }

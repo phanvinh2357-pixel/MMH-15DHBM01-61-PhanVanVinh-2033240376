@@ -1,7 +1,13 @@
 @echo off
 chcp 65001 >nul
+set "PYTHONIOENCODING=utf-8"
 title MÔ PHỎNG 3 KÊNH & 3 KỊCH BẢN TẤN CÔNG - BÀI TẬP 22 (HKDF)
 cd /d "%~dp0"
+
+set "PYTHON_EXE=python"
+if exist "..\venv\Scripts\python.exe" (
+    set "PYTHON_EXE=..\venv\Scripts\python.exe"
+)
 
 echo ======================================================================
 echo   HỌC PHẦN: MẬT MÃ HỌC (0101100111) - ĐẠI HỌC CÔNG THƯƠNG TP.HCM (HUIT)
@@ -11,7 +17,7 @@ echo.
 echo [*] Đang khởi chạy mô phỏng từ tệp: 03_SourceCode/simulation_runner.py...
 echo.
 
-python ..\03_SourceCode\simulation_runner.py
+"%PYTHON_EXE%" ..\03_SourceCode\simulation_runner.py
 
 echo.
 echo ======================================================================

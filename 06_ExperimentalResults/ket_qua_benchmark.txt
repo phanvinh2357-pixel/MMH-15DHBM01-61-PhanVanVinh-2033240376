@@ -1,28 +1,30 @@
-=== KẾT QUẢ KIỂM THỬ ĐƠN VỊ VÀ ĐO KIỂM THỰC NGHIỆM HKDF-EXPAND ===
-Thực hiện bởi: Lê Minh Khôi - 2033240160
-Môn học: Đồ án Mật mã học (HUIT)
-
-1. KẾT QUẢ TRÍCH XUẤT KHÓA PHIÊN VÀ KIỂM TRA BIÊN (crypto_engine.py)
---------------------------------------------------------------------------------
-=== KIỂM THỬ MODULE HKDF-EXPAND (Lê Minh Khôi - 2033240160) ===
-[+] K_control (32 bytes): e03a2904f1cf8d520fda299e73cd08a761376ad36dbc32b14631145c83f1ca01
-[+] K_send (32 bytes): 741ee1b6ffa39259038b6451ab6af0e3eaff2651f09cb0892c9813e5219b89b1
-[+] K_recv (32 bytes): e64ad86856d820d2a3dccdd038913e03d90ccd24598beb293a0ed401c9a5bb27
-[+] K_audit (32 bytes): d6e6863ad6fa421cff2fcbf51404af92bdf56b3b82da2e9e75ea21970f9ef7f
-[+] Nonce_base (12 bytes): 53764ddb8cc9ad4e332bdbfa
-[+] K_export (32 bytes): 2851f9ldbae69e71b89267be4e9823665f2273c958db22f0ee1612cfe09ab58d
-
-[*] Đang kiểm tra ngoại lệ biên L = 9000...
-[PASS] Bắt thành công ngoại lệ biên: ValueError: Invalid requested key length (9000 bytes). L must be between 1 and 8160.
-
-2. KẾT QUẢ KHẢO SÁT HIỆN NĂNG THỰC NGHIỆM (benchmark_expand.py)
---------------------------------------------------------------------------------
-=== KHẢO SÁT KỊCH BẢN A: ĐỘ TRỄ THEO ĐỘ DÀI L ===
-  - Độ dài L = 16 bytes | Trung bình: 4777.00 ns/lần
-  - Độ dài L = 32 bytes | Trung bình: 3588.10 ns/lần
-  - Độ dài L = 64 bytes | Trung bình: 4892.70 ns/lần
-
-=== KHẢO SÁT KỊCH BẢN B: ĐỘ TRỄ THEO KÍCH THƯỚC INFO ===
-  - Kích thước info thực tế ~  38 bytes | Trung bình: 3003.50 ns/lần
-  - Kích thước info thực tế ~  85 bytes | Trung bình: 3836.30 ns/lần
-  - Kích thước info thực tế ~ 275 bytes | Trung bình: 3835.80 ns/lần
+=== KẾT QUẢ THỰC NGHIỆM HIỆU NĂNG HKDF & AEAD SESSION ===
+Hệ điều hành : Windows 11
+Vi xử lý     : AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD
+Số lần lặp   : N = 50 (sau 10 lần chạy làm nóng)
+========================================================================================
+Kịch bản     | Chỉ tiêu đo                  |  Mean (us) |    StdDev |    Median |  P95 (us)
+----------------------------------------------------------------------------------------
+Kich_Ban_A   | A_ECDH_KeyGen_us             |     19.766 |     6.101 |    18.150 |    24.700
+Kich_Ban_A   | A_ECDH_SharedSecret_us       |     53.216 |    22.828 |    49.600 |    55.000
+Kich_Ban_A   | A_HKDF_Extract_us            |      3.628 |     0.704 |     3.400 |     5.000
+Kich_Ban_A   | A_HKDF_Expand_5Keys_us       |     19.488 |     1.696 |    19.050 |    22.600
+Kich_Ban_A   | A_Full_Handshake_us          |     96.098 |    24.634 |    90.450 |   113.200
+Kich_Ban_B   | B_Expand_16B_us              |      3.248 |     0.218 |     3.200 |     3.700
+Kich_Ban_B   | B_Expand_32B_us              |      3.218 |     0.108 |     3.200 |     3.400
+Kich_Ban_B   | B_Expand_64B_us              |      3.910 |     0.122 |     3.900 |     4.100
+Kich_Ban_B   | B_Expand_256B_us             |      6.902 |     0.766 |     6.300 |     7.900
+Kich_Ban_B   | B_Expand_1024B_us            |     19.454 |     4.039 |    18.600 |    19.300
+Kich_Ban_B   | B_Expand_4096B_us            |     69.738 |     1.948 |    69.900 |    73.300
+Kich_Ban_B   | B_Expand_8160B_us            |    145.738 |    27.160 |   135.300 |   233.500
+Kich_Ban_C   | C_Payload_64B_us             |      7.236 |     0.553 |     7.300 |     7.600
+Kich_Ban_C   | C_Payload_1KB_us             |      6.598 |     0.135 |     6.600 |     6.900
+Kich_Ban_C   | C_Payload_16KB_us            |     13.808 |     0.875 |    13.700 |    13.900
+Kich_Ban_C   | C_Payload_64KB_us            |     33.150 |     0.917 |    33.000 |    33.300
+Kich_Ban_D   | D_Salt_0B_Rong_us            |      2.600 |     0.150 |     2.600 |     2.900
+Kich_Ban_D   | D_Salt_32B_Chuan_us          |      2.554 |     0.111 |     2.500 |     2.800
+Kich_Ban_D   | D_Salt_64B_KhoiHash_us       |      2.546 |     0.089 |     2.500 |     2.700
+Kich_Ban_D   | D_Salt_256B_MoRong_us        |      4.366 |     2.020 |     3.000 |     7.700
+Kich_Ban_E   | E_MultiExpand_DomainSep_us   |     18.482 |     1.150 |    18.300 |    18.700
+Kich_Ban_E   | E_SingleShot_160B_us         |      5.328 |     0.105 |     5.300 |     5.500
+Kich_Ban_E   | E_Zeroize_Memory_us          |      4.612 |     0.108 |     4.600 |     4.900
